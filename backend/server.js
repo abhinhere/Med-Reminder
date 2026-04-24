@@ -188,7 +188,23 @@ setInterval(() => {
 }, 30000);
 
 const PORT = process.env.PORT || 3000;
+const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server running on port ${PORT}`);
+  console.log(`Server URL: ${SERVER_URL}`);
   loadState();
+
+  // ── Self-ping keepalive ──────────────────────────────────────────────────
+  // Render free tier sleeps after ~15 min of inactivity.
+  // Pinging ourselves every 10 min keeps the process alive so setInterval
+  // keeps firing medicine reminders even with no user traffic.
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/ping`);
+      console.log(`[Keepalive] Self-ping OK — ${new Date().toISOString()}`);
+    } catch (err) {
+      console.warn(`[Keepalive] Self-ping failed:`, err.message);
+    }
+  }, 10 * 60 * 1000); // every 10 minutes
 });

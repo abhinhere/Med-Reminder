@@ -395,6 +395,22 @@
   setInterval(updateClock, 1000);
   setInterval(checkDue, 30000);   // Check every 30 seconds
 
+  // ── Client keepalive ping ─────────────────────────────────────────────────
+  // Prevents Render free tier from sleeping while the app is open.
+  // Also re-syncs medicines every 5 minutes to keep server data fresh.
+  const BACKEND = 'https://med-reminder-joqh.onrender.com';
+  async function keepAlive() {
+    try {
+      await fetch(`${BACKEND}/ping`);
+      // Also re-sync so server always has latest medicine list
+      syncWithBackend();
+    } catch(e) {
+      console.warn('[Keepalive] Ping failed:', e);
+    }
+  }
+  keepAlive(); // ping immediately on load
+  setInterval(keepAlive, 5 * 60 * 1000); // then every 5 minutes
+
   // ─── PWA Install Prompt ──────────────────────────────────────────────────────
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt', (e) => {
