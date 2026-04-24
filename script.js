@@ -1,14 +1,41 @@
 
   // ─── State ───────────────────────────────────────────────────────────────────
-  let medicines = [
-    { id:1, name:'Metformin 500mg',  time:'08:00', type:'tablet', dosage:'1 tablet',   notes:'With breakfast', taken:false },
-    { id:2, name:'Vitamin D3',       time:'12:00', type:'pill',   dosage:'1 capsule',  notes:'With water',     taken:false },
-    { id:3, name:'Cough Syrup',      time:'21:00', type:'liquid', dosage:'10ml',       notes:'Before bed',     taken:false }
-  ];
-  let nextId    = 4;
+  let medicines = [];
+  let nextId    = 1;
   let logItems  = [];
   let alertedIds = new Set();
   let notifPermission = false;
+
+  function loadState() {
+    try {
+      const stored = localStorage.getItem('medRemindState');
+      if (stored) {
+        const state = JSON.parse(stored);
+        medicines = state.medicines || [];
+        nextId = state.nextId || 1;
+        logItems = state.logItems || [];
+        alertedIds = new Set(state.alertedIds || []);
+      }
+    } catch(e) {
+      console.warn('Failed to load state', e);
+    }
+  }
+  
+  function saveState() {
+    try {
+      const state = {
+        medicines,
+        nextId,
+        logItems,
+        alertedIds: Array.from(alertedIds)
+      };
+      localStorage.setItem('medRemindState', JSON.stringify(state));
+    } catch(e) {
+      console.warn('Failed to save state', e);
+    }
+  }
+
+  loadState();
 
   const ICONS = { pill:'💊', tablet:'💠', liquid:'🧪' };
 
@@ -89,6 +116,7 @@
         <span class="log-ts">${l.ts}</span>
         <span>${l.msg}</span>
       </div>`).join('');
+    saveState();
   }
 
   // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -213,6 +241,15 @@
     document.getElementById('notifBanner').style.display = 'flex';
   } else if(Notification.permission === 'granted'){
     notifPermission = true;
+  }
+
+  if (logItems.length > 0) {
+    document.getElementById('logEntries').innerHTML = logItems.map(l=>`
+      <div class="log-entry">
+        <span class="log-dot dot-${l.type}"></span>
+        <span class="log-ts">${l.ts}</span>
+        <span>${l.msg}</span>
+      </div>`).join('');
   }
 
   updateClock();
