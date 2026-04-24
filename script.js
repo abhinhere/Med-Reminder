@@ -285,3 +285,32 @@
 
   setInterval(updateClock, 1000);
   setInterval(checkDue, 30000);   // Check every 30 seconds
+
+  // ─── PWA Install Prompt ──────────────────────────────────────────────────────
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBanner').style.display = 'flex';
+  });
+
+  const installBtn = document.getElementById('installAppBtn');
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      document.getElementById('installBanner').style.display = 'none';
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          addLog('App installed successfully', 'info');
+        }
+        deferredPrompt = null;
+      }
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    showToast('App installed successfully!');
+    document.getElementById('installBanner').style.display = 'none';
+  });

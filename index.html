@@ -36,6 +36,20 @@
     <div id="clock" class="clock-box" aria-live="polite">00:00:00</div>
   </header>
 
+  <!-- Install App banner -->
+  <div id="installBanner" class="notif-banner" style="display:none; background: var(--green-light); border-color: rgba(52,199,89,0.3);" role="alert">
+    <div class="notif-content">
+      <div class="notif-icon" style="background: rgba(52,199,89,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+      </div>
+      <span style="color: var(--green);">Install MedRemind App</span>
+    </div>
+    <button id="installAppBtn" class="btn-primary-small" style="background: var(--green);">Install</button>
+  </div>
+
   <!-- Notification permission banner -->
   <div id="notifBanner" class="notif-banner" style="display:none" role="alert">
     <div class="notif-content">
