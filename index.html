@@ -2,74 +2,97 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>MedRemind – Medicine Reminder</title>
+<meta name="description" content="MedRemind — your elegant daily medicine tracker with real-time reminders and browser notifications." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link href="style.css" rel="stylesheet">
 </head>
 <body>
+
 <div class="container">
 
   <!-- Header -->
-  <div class="header">
+  <header class="header" id="appHeader">
     <div class="header-left">
-      <div class="logo">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14c-.55 0-1-.45-1-1v-3H8c-.55 0-1-.45-1-1s.45-1 1-1h3V8c0-.55.45-1 1-1s1 .45 1 1v3h3c.55 0 1 .45 1 1s-.45 1-1 1h-3v3c0 .55-.45 1-1 1z"/></svg>
+      <div class="logo-wrapper">
+        <div class="logo" aria-label="MedRemind Logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M2 12h20"/>
+            <rect x="4" y="4" width="16" height="16" rx="4"/>
+          </svg>
+        </div>
       </div>
       <div>
-        <div class="app-title">MedRemind</div>
-        <div class="app-subtitle">Your daily medicine tracker</div>
+        <h1 class="app-title">MedRemind</h1>
+        <p class="app-subtitle">Your daily medicine tracker</p>
       </div>
     </div>
-    <div id="clock" class="clock-box">00:00:00</div>
-  </div>
+    <div id="clock" class="clock-box" aria-live="polite">00:00:00</div>
+  </header>
 
   <!-- Notification permission banner -->
-  <div id="notifBanner" class="notif-banner" style="display:none">
-    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6V11c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-    <span>Enable browser notifications for real-time medicine alerts</span>
-    <button onclick="requestPermission()">Enable</button>
+  <div id="notifBanner" class="notif-banner" style="display:none" role="alert">
+    <div class="notif-content">
+      <div class="notif-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <span>Enable notifications for real-time alerts</span>
+    </div>
+    <button id="enableNotifBtn" class="btn-primary-small" onclick="requestPermission()">Enable</button>
   </div>
 
   <!-- Section header -->
   <div class="section-header">
-    <span class="section-label">My Medications</span>
-    <button class="btn-add-open" id="toggleBtn" onclick="toggleForm()">+ Add Medicine</button>
+    <div class="section-label-group">
+      <h2 class="section-label">Medications</h2>
+      <span class="section-count" id="medCount">0 items</span>
+    </div>
+    <button class="btn-add-open" id="toggleBtn" onclick="toggleForm()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
   </div>
 
   <!-- Add form (hidden initially) -->
-  <div id="formWrapper" style="display:none">
+  <div id="formWrapper" class="form-wrapper" style="display:none">
     <div class="add-form">
       <div class="form-grid">
         <div class="form-group form-full">
-          <label for="medName">Medicine Name</label>
-          <input id="medName" type="text" placeholder="e.g. Amoxicillin 500mg" />
+          <label for="medName">Name</label>
+          <input id="medName" type="text" placeholder="e.g. Amoxicillin" autocomplete="off" />
         </div>
         <div class="form-group">
-          <label for="medTime">Reminder Time</label>
+          <label for="medTime">Time</label>
           <input id="medTime" type="time" />
         </div>
         <div class="form-group">
           <label for="medType">Type</label>
-          <select id="medType">
-            <option value="pill">💊 Pill / Capsule</option>
-            <option value="tablet">💠 Tablet</option>
-            <option value="liquid">🧪 Liquid / Syrup</option>
-          </select>
+          <div class="select-wrapper">
+            <select id="medType">
+              <option value="pill">Pill / Capsule</option>
+              <option value="tablet">Tablet</option>
+              <option value="liquid">Liquid / Syrup</option>
+            </select>
+            <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
         </div>
         <div class="form-group">
           <label for="medDosage">Dosage</label>
-          <input id="medDosage" type="text" placeholder="e.g. 1 tablet" />
+          <input id="medDosage" type="text" placeholder="e.g. 1 tablet" autocomplete="off" />
         </div>
         <div class="form-group">
-          <label for="medNotes">Notes (optional)</label>
-          <input id="medNotes" type="text" placeholder="e.g. After meals with water" />
+          <label for="medNotes">Notes</label>
+          <input id="medNotes" type="text" placeholder="e.g. After meals" autocomplete="off" />
         </div>
       </div>
       <div class="form-actions">
-        <button class="btn-cancel" onclick="toggleForm()">Cancel</button>
-        <button class="btn-submit" onclick="addMedicine()">Add Reminder</button>
+        <button class="btn-secondary" id="cancelBtn" onclick="toggleForm()">Cancel</button>
+        <button class="btn-primary" id="submitBtn" onclick="addMedicine()">Add</button>
       </div>
     </div>
   </div>
@@ -78,19 +101,27 @@
   <div id="medList" class="med-list"></div>
 
   <!-- Notification log -->
-  <div class="log-panel">
+  <section class="log-panel" id="logPanel">
     <div class="log-header">
-      <span class="section-label">Notification Log</span>
-      <span id="logStatus" class="log-status on">Monitoring active</span>
+      <h2 class="section-label">Log</h2>
+      <span id="logStatus" class="log-status on">
+        <span class="pulse-dot"></span>
+        Active
+      </span>
     </div>
     <div id="logEntries" class="log-entries">
       <div class="log-entry">
         <span class="log-dot dot-info"></span>
         <span class="log-ts">--:--</span>
-        <span style="color:var(--text3)">App started. Add medicines to begin tracking.</span>
+        <span>App started. Add medicines to begin tracking.</span>
       </div>
     </div>
-  </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>Created by <a href="https://github.com/abhinhere" target="_blank" rel="noopener noreferrer">@abhinhere</a></p>
+  </footer>
 </div>
 
 <!-- Toast notification -->

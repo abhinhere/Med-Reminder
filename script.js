@@ -43,7 +43,10 @@
   // ─── Render ──────────────────────────────────────────────────────────────────
   function render(){
     const list = document.getElementById('medList');
+    const countEl = document.getElementById('medCount');
+    if(countEl) countEl.textContent = `${medicines.length} item${medicines.length!==1?'s':''}`;
     if(!medicines.length){
+      if(countEl) countEl.textContent = '0 items';
       list.innerHTML = `
         <div class="empty-state">
           <span class="empty-icon">💊</span>
@@ -101,17 +104,25 @@
   // ─── Notifications ───────────────────────────────────────────────────────────
   function requestPermission(){
     if(!('Notification' in window)){ showToast('Notifications not supported','alert'); return; }
-    Notification.requestPermission().then(p => {
-      notifPermission = p === 'granted';
-      document.getElementById('notifBanner').style.display = 'none';
-      if(notifPermission){
-        addLog('Browser notifications enabled','info');
-        showToast('Notifications enabled!');
-      } else {
-        addLog('Browser notifications denied — using in-app toasts','info');
-        showToast('Using in-app alerts instead','alert');
-      }
-    });
+    try {
+      Notification.requestPermission().then(p => {
+        notifPermission = p === 'granted';
+        document.getElementById('notifBanner').style.display = 'none';
+        if(notifPermission){
+          addLog('Browser notifications enabled','info');
+          showToast('Notifications enabled!');
+        } else {
+          addLog('Browser notifications denied — using in-app toasts','info');
+          showToast('Using in-app alerts instead','alert');
+        }
+      }).catch(err => {
+        console.warn('Notification permission error:', err);
+        showToast('Notifications blocked by browser','alert');
+      });
+    } catch(err) {
+      console.warn('Notification API blocked:', err);
+      showToast('Notifications blocked (try localhost instead of file://)','alert');
+    }
   }
 
   function fireAlert(med){
@@ -170,6 +181,7 @@
     ['medName','medDosage','medNotes'].forEach(id => document.getElementById(id).value='');
     toggleForm();
     render();
+    checkDue();
   }
 
   function markTaken(id){
