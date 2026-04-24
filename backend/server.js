@@ -102,30 +102,37 @@ function getUserDateString(offsetMins) {
 
 // Debug endpoint - see what the server knows
 app.get('/debug', (req, res) => {
-  const debugInfo = [];
-  users.forEach((user, endpoint) => {
-    if (!user) return;
-    const offset = user.offsetMins || 0;
-    const localHHMM = getUserHHMM(offset);
-    const todayDate = getUserDateString(offset);
-    const meds = user.medicines || [];
-    debugInfo.push({
-      endpoint: endpoint.slice(-20),
-      offsetMins: offset,
-      serverUTC: new Date().toISOString(),
-      userLocalTime: localHHMM,
-      userLocalDate: todayDate,
-      medicines: meds.map(m => ({
-        name: m.name,
-        time: m.time,
-        taken: m.taken,
-        lastPushedTime: m.lastPushedTime || null,
-        lastPushedDate: m.lastPushedDate || null,
-        willFire: !m.taken && m.time === localHHMM
-      }))
+  try {
+    const debugInfo = [];
+    users.forEach((user, endpoint) => {
+      if (!user) return;
+      const offset = user.offsetMins || 0;
+      const localHHMM = getUserHHMM(offset);
+      const todayDate = getUserDateString(offset);
+      const meds = user.medicines || [];
+      debugInfo.push({
+        endpoint: String(endpoint).slice(-20),
+        offsetMins: offset,
+        serverUTC: new Date().toISOString(),
+        userLocalTime: localHHMM,
+        userLocalDate: todayDate,
+        medicines: meds.map(m => {
+          if (!m) return null;
+          return {
+            name: m.name,
+            time: m.time,
+            taken: m.taken,
+            lastPushedTime: m.lastPushedTime || null,
+            lastPushedDate: m.lastPushedDate || null,
+            willFire: !m.taken && m.time === localHHMM
+          };
+        }).filter(Boolean)
+      });
     });
-  });
-  res.json({ users: debugInfo, totalUsers: users.size });
+    res.json({ users: debugInfo, totalUsers: users.size });
+  } catch (err) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
 });
 
 // Check every 30 seconds for due medicines
@@ -141,6 +148,8 @@ setInterval(() => {
 
     const meds = user.medicines || [];
     meds.forEach(m => {
+      if (!m) return; // safeguard against null medicines
+
       // Reset lastPushedTime if it's a new day (so daily reminders fire again)
       if (m.lastPushedDate && m.lastPushedDate !== todayDate) {
         m.lastPushedTime = null;
@@ -168,14 +177,15 @@ setInterval(() => {
           data: { url: '/' }
         });
 
-        console.log(`[Push] Sending to ${endpoint.slice(-10)} for ${m.name} at ${localHHMM}`);
+        const safeEndpoint = String(endpoint).slice(-10);
+        console.log(`[Push] Sending to ${safeEndpoint} for ${m.name} at ${localHHMM}`);
 
         webpush.sendNotification(user.subscription, payload).then(() => {
-          console.log(`[Push] ✅ Sent: ${m.name} to ${endpoint.slice(-10)}`);
+          console.log(`[Push] ✅ Sent: ${m.name} to ${safeEndpoint}`);
         }).catch(err => {
           console.error(`[Push] ❌ Error for ${m.name}:`, err.statusCode, err.body);
           if (err.statusCode === 404 || err.statusCode === 410) {
-            console.log('[Push] Subscription gone, removing user:', endpoint.slice(-10));
+            console.log('[Push] Subscription gone, removing user:', safeEndpoint);
             users.delete(endpoint);
             needsSave = true;
           }
