@@ -104,6 +104,7 @@ function getUserDateString(offsetMins) {
 app.get('/debug', (req, res) => {
   const debugInfo = [];
   users.forEach((user, endpoint) => {
+    if (!user) return;
     const offset = user.offsetMins || 0;
     const localHHMM = getUserHHMM(offset);
     const todayDate = getUserDateString(offset);
@@ -132,6 +133,7 @@ setInterval(() => {
   let needsSave = false;
 
   users.forEach((user, endpoint) => {
+    if (!user) return;
     const offset = user.offsetMins || 0;
     const localHHMM = getUserHHMM(offset);
     const todayDate = getUserDateString(offset);
