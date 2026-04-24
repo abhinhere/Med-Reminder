@@ -188,7 +188,7 @@ setInterval(() => {
 }, 30000);
 
 const PORT = process.env.PORT || 3000;
-const SERVER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+const SERVER_URL = process.env.RENDER_EXTERNAL_URL || 'https://med-reminder-joqh.onrender.com';
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server running on port ${PORT}`);
