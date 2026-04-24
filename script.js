@@ -5,6 +5,56 @@
   let logItems  = [];
   let alertedIds = new Set();
   let notifPermission = false;
+  let pushSubscription = null;
+
+  const PUBLIC_VAPID_KEY = 'BPktub46zVbCBkIgyLzolPnu-WmTdQnvT1Ovn6N0hPhY6Y6HM8SIHK4vhxxk2Rwlm3LSkU6yAQAZPNMg9cfRjB4';
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  async function syncWithBackend() {
+    if (!pushSubscription) return;
+    const offsetMins = new Date().getTimezoneOffset();
+    try {
+      await fetch('http://localhost:3000/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: pushSubscription,
+          medicines: medicines,
+          offsetMins: offsetMins
+        })
+      });
+    } catch (err) {
+      console.warn('Failed to sync with backend', err);
+    }
+  }
+
+  async function subscribeToPush() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+        });
+      }
+      pushSubscription = sub;
+      syncWithBackend();
+    } catch (err) {
+      console.error('Push subscription failed:', err);
+    }
+  }
 
   function loadState() {
     try {
@@ -139,6 +189,7 @@
         if(notifPermission){
           addLog('Browser notifications enabled','info');
           showToast('Notifications enabled!');
+          subscribeToPush();
         } else {
           addLog('Browser notifications denied — using in-app toasts','info');
           showToast('Using in-app alerts instead','alert');
@@ -229,6 +280,7 @@
     toggleForm();
     render();
     checkDue();
+    syncWithBackend();
   }
 
   function markTaken(id){
@@ -239,6 +291,7 @@
     addLog(`${m.name} marked as taken`, 'taken');
     showToast(`${m.name} logged ✓`);
     render();
+    syncWithBackend();
   }
 
   function deleteMed(id){
@@ -246,6 +299,7 @@
     medicines = medicines.filter(x=>x.id!==id);
     if(m) addLog(`${m.name} removed`, 'taken');
     render();
+    syncWithBackend();
   }
 
   // ─── Enter key on form ───────────────────────────────────────────────────────
@@ -258,7 +312,15 @@
   // ─── Init ────────────────────────────────────────────────────────────────────
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => {
+      navigator.serviceWorker.register('sw.js').then(async reg => {
+        if (Notification.permission === 'granted') {
+          let sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            pushSubscription = sub;
+            syncWithBackend();
+          }
+        }
+      }).catch(err => {
         console.warn('ServiceWorker registration failed: ', err);
       });
     });
