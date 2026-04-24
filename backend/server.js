@@ -80,33 +80,78 @@ app.post('/sync', (req, res) => {
 });
 
 // Helper to get the user's local HH:MM time
+// getTimezoneOffset() returns (UTC - local) in minutes
+// e.g. IST (UTC+5:30) => -330, so localTime = UTC + 330 min
 function getUserHHMM(offsetMins) {
+  // offsetMins is from getTimezoneOffset(): negative means ahead of UTC
+  // To get local time: UTC - offsetMins
   const localMs = Date.now() - (offsetMins * 60000);
   const localDate = new Date(localMs);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(localDate.getUTCHours())}:${pad(localDate.getUTCMinutes())}`;
+  const hhmm = `${pad(localDate.getUTCHours())}:${pad(localDate.getUTCMinutes())}`;
+  return hhmm;
 }
+
+// Helper to get today's date string YYYY-MM-DD in user's local timezone
+function getUserDateString(offsetMins) {
+  const localMs = Date.now() - (offsetMins * 60000);
+  const localDate = new Date(localMs);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${localDate.getUTCFullYear()}-${pad(localDate.getUTCMonth()+1)}-${pad(localDate.getUTCDate())}`;
+}
+
+// Debug endpoint - see what the server knows
+app.get('/debug', (req, res) => {
+  const debugInfo = [];
+  users.forEach((user, endpoint) => {
+    const localHHMM = getUserHHMM(user.offsetMins);
+    const todayDate = getUserDateString(user.offsetMins);
+    debugInfo.push({
+      endpoint: endpoint.slice(-20),
+      offsetMins: user.offsetMins,
+      serverUTC: new Date().toISOString(),
+      userLocalTime: localHHMM,
+      userLocalDate: todayDate,
+      medicines: user.medicines.map(m => ({
+        name: m.name,
+        time: m.time,
+        taken: m.taken,
+        lastPushedTime: m.lastPushedTime || null,
+        lastPushedDate: m.lastPushedDate || null,
+        willFire: !m.taken && m.time === localHHMM
+      }))
+    });
+  });
+  res.json({ users: debugInfo, totalUsers: users.size });
+});
 
 // Check every 30 seconds for due medicines
 setInterval(() => {
   let needsSave = false;
-  const localHHMMMap = new Map();
 
   users.forEach((user, endpoint) => {
-    if (!localHHMMMap.has(user.offsetMins)) {
-      localHHMMMap.set(user.offsetMins, getUserHHMM(user.offsetMins));
-    }
-    const localHHMM = localHHMMMap.get(user.offsetMins);
-    
+    const localHHMM = getUserHHMM(user.offsetMins);
+    const todayDate = getUserDateString(user.offsetMins);
     let userNeedsSave = false;
 
     user.medicines.forEach(m => {
+      // Reset lastPushedTime if it's a new day (so daily reminders fire again)
+      if (m.lastPushedDate && m.lastPushedDate !== todayDate) {
+        m.lastPushedTime = null;
+        m.lastPushedDate = null;
+        m.taken = false; // Reset taken status for new day
+        userNeedsSave = true;
+        console.log(`[Reset] New day for ${m.name} — clearing taken/pushed state`);
+      }
+
       // If it's time, and they haven't taken it yet
       if (!m.taken && m.time === localHHMM) {
-        
+
         // Prevent spamming the same notification in the same minute
         if (m.lastPushedTime === localHHMM) return;
-        m.lastPushedTime = localHHMM; 
+
+        m.lastPushedTime = localHHMM;
+        m.lastPushedDate = todayDate;
         userNeedsSave = true;
 
         const payload = JSON.stringify({
@@ -114,15 +159,17 @@ setInterval(() => {
           body: `Time to take ${m.name} — ${m.dosage}${m.notes ? '. ' + m.notes : ''}`,
           tag: `med-${m.id}`,
           icon: '/icon-512.png',
-          data: {
-            url: '/' // When clicked, opens the app
-          }
+          data: { url: '/' }
         });
 
-        webpush.sendNotification(user.subscription, payload).catch(err => {
-          console.error('Push error:', err);
+        console.log(`[Push] Sending to ${endpoint.slice(-10)} for ${m.name} at ${localHHMM}`);
+
+        webpush.sendNotification(user.subscription, payload).then(() => {
+          console.log(`[Push] ✅ Sent: ${m.name} to ${endpoint.slice(-10)}`);
+        }).catch(err => {
+          console.error(`[Push] ❌ Error for ${m.name}:`, err.statusCode, err.body);
           if (err.statusCode === 404 || err.statusCode === 410) {
-            console.log('Subscription expired or removed:', endpoint);
+            console.log('[Push] Subscription gone, removing user:', endpoint.slice(-10));
             users.delete(endpoint);
             needsSave = true;
           }

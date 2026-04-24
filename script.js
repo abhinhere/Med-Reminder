@@ -22,19 +22,35 @@
 
   async function syncWithBackend() {
     if (!pushSubscription) return;
+    // getTimezoneOffset() returns (UTC - local) in minutes.
+    // e.g. IST (UTC+5:30) => -330. Server uses: localTime = UTC - offsetMins
     const offsetMins = new Date().getTimezoneOffset();
+
+    // Strip server-managed fields before syncing — server owns lastPushedTime/Date
+    const medicinesForSync = medicines.map(m => ({
+      id: m.id,
+      name: m.name,
+      time: m.time,
+      type: m.type,
+      dosage: m.dosage,
+      notes: m.notes,
+      taken: m.taken
+    }));
+
     try {
-      await fetch('https://med-reminder-joqh.onrender.com/sync', {
+      const res = await fetch('https://med-reminder-joqh.onrender.com/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subscription: pushSubscription,
-          medicines: medicines,
+          medicines: medicinesForSync,
           offsetMins: offsetMins
         })
       });
+      if (!res.ok) console.warn('[Sync] Failed with status', res.status);
+      else console.log('[Sync] ✅ Synced', medicinesForSync.length, 'medicines, offsetMins:', offsetMins);
     } catch (err) {
-      console.warn('Failed to sync with backend', err);
+      console.warn('[Sync] Failed to sync with backend', err);
     }
   }
 
@@ -56,6 +72,12 @@
     }
   }
 
+  function getTodayDateString() {
+    const n = new Date();
+    const pad = v => String(v).padStart(2, '0');
+    return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;
+  }
+
   function loadState() {
     try {
       const stored = localStorage.getItem('medRemindState');
@@ -65,6 +87,15 @@
         nextId = state.nextId || 1;
         logItems = state.logItems || [];
         alertedIds = new Set(state.alertedIds || []);
+
+        // Daily reset: if saved date != today, clear taken + alertedIds
+        const savedDate = state.savedDate || '';
+        const today = getTodayDateString();
+        if (savedDate !== today) {
+          medicines.forEach(m => { m.taken = false; });
+          alertedIds = new Set();
+          console.log('[Reset] New day — cleared taken status');
+        }
       }
     } catch(e) {
       console.warn('Failed to load state', e);
@@ -77,7 +108,8 @@
         medicines,
         nextId,
         logItems,
-        alertedIds: Array.from(alertedIds)
+        alertedIds: Array.from(alertedIds),
+        savedDate: getTodayDateString()
       };
       localStorage.setItem('medRemindState', JSON.stringify(state));
     } catch(e) {
@@ -313,15 +345,30 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then(async reg => {
+        console.log('[SW] Registered:', reg.scope);
         if (Notification.permission === 'granted') {
+          notifPermission = true;
           let sub = await reg.pushManager.getSubscription();
+          if (!sub) {
+            // Re-subscribe if the subscription was lost
+            try {
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+              });
+              console.log('[SW] Created new push subscription');
+            } catch(e) {
+              console.warn('[SW] Could not re-subscribe:', e);
+            }
+          }
           if (sub) {
             pushSubscription = sub;
+            console.log('[SW] Push subscription active, syncing...');
             syncWithBackend();
           }
         }
       }).catch(err => {
-        console.warn('ServiceWorker registration failed: ', err);
+        console.warn('[SW] ServiceWorker registration failed:', err);
       });
     });
   }
