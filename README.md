@@ -1,67 +1,76 @@
 # 💊 MedRemind — Medicine Reminder Web App
 
-> A lightweight, zero-dependency medicine reminder web application with real-time browser notifications. Built with pure HTML, CSS, and vanilla JavaScript — no frameworks, no build tools, no install required.
+> An elegant, zero-dependency medicine reminder web application featuring a clean iOS-style aesthetic, real-time push notifications, and full offline persistence.
 
 ---
 
 ## ✨ Features
 
-- 🔔 **Real-time browser push notifications** — alerts fire at the scheduled medicine time using the Web Notifications API
-- ⏱️ **Live clock** — updates every second so you always know the current time
-- ➕ **Add medicines** — set name, time, type (pill/tablet/liquid), dosage, and optional notes
-- ✅ **Mark as taken** — log each dose with one click
-- 🗑️ **Delete reminders** — remove medicines you no longer need
-- 📋 **Notification log** — timestamped history of every alert, dose taken, and reminder added
-- 🎨 **Responsive design** — works on desktop and mobile browsers
+- 📱 **Progressive Web App (PWA)** — install directly to your home screen with a custom icon. Includes an automated in-app install prompt banner.
+- 🔔 **Mobile & Desktop Push Notifications** — utilizes a Service Worker to deliver robust push notifications across iOS, Android, and Desktop browsers.
+- 💾 **Local Storage Persistence** — your reminders, logs, and state are automatically saved to the browser so they survive page refreshes or app restarts.
+- 🎨 **Clean iOS Aesthetic** — features a sleek, minimalist light theme with soft shadows and refined typography.
+- ⏱️ **Live clock** — updates every second so you always know the current time.
+- ➕ **Add medicines** — set name, time, type (pill/tablet/liquid), dosage, and optional notes.
+- ✅ **Mark as taken** — log each dose with one click.
+- 🗑️ **Delete reminders** — remove medicines you no longer need.
+- 📋 **Notification log** — timestamped history of every alert, dose taken, and reminder added.
 
 ---
 
 ## 🚀 Getting Started
 
-### Option 1 — Open directly in browser
+### Hosted / Mobile Usage (Recommended)
+You can use the app directly through GitHub Pages on your phone or desktop:
+1. Visit the hosted link: [https://abhinhere.github.io/Med-Reminder/](https://abhinhere.github.io/Med-Reminder/)
+2. **On Mobile:** Wait for the green "Install MedRemind App" banner to appear and tap **Install**, or use your browser's "Add to Home Screen" option.
+3. Once installed, open the app from your home screen and approve Notification permissions when prompted.
 
-1. Download or clone this repository:
+### Local Development
+1. Clone this repository:
    ```bash
    git clone https://github.com/abhinhere/Med-Reminder.git
    ```
+2. Serve locally to ensure the Service Worker and Notification APIs work correctly:
+   ```bash
+   npx serve .
+   # or
+   python -m http.server 8080
+   ```
+3. Open `http://localhost:3000` (or your respective port) in your browser.
+
+---
 
 ## 🛠️ How It Works
 
 | Feature | Implementation |
 |---|---|
-| Scheduling | `setInterval` polls every 30 seconds; fires alert when current time is within ±1 minute of the scheduled time |
-| Notifications | Web Notifications API (`Notification` constructor) |
-| Fallback alerts | In-app animated toast when browser notifications are denied |
-| State | In-memory JavaScript array (resets on page refresh) |
-| Styling | Pure CSS with custom properties (CSS variables) |
-| Fonts | Google Fonts — DM Sans + Space Mono |
+| Persistence | State is synchronized with browser `localStorage` on every change |
+| Scheduling | `setInterval` polls time; fires alert when current time matches scheduled time |
+| Notifications | Web Notifications API via `ServiceWorkerRegistration.showNotification()` |
+| PWA Support | Standard `manifest.json` + `sw.js` (Service Worker) intercepting `beforeinstallprompt` |
+| Styling | Pure CSS utilizing modern flexbox/grid and an iOS/Apple design system |
+| Fonts | Google Fonts — Inter |
 
 ---
 
 ## 🔒 Browser Notification Permission
 
-On first load, the app will show a banner asking for notification permission. You must click **Enable** and approve the browser prompt to receive desktop alerts.
-
-| Browser | Support |
+| Browser / OS | Support |
 |---|---|
-| Chrome / Edge | ✅ Full support |
-| Firefox | ✅ Full support |
+| Chrome / Edge (Desktop & Android) | ✅ Full support via Service Worker |
+| Firefox (Desktop) | ✅ Full support |
 | Safari (macOS 13+) | ✅ Supported |
-| Safari iOS | ⚠️ Requires PWA install |
-
-> **Note:** Notifications only work while the browser tab is open. For background notifications (tab closed), a **Service Worker** would need to be added.
+| Safari iOS | ✅ Supported **(Requires installing as PWA to home screen)** |
 
 ---
 
-## 🔮 Roadmap / Planned Features
+## 🔮 Planned Features
 
-- [ ] Service Worker for background notifications (tab-independent alerts)
-- [ ] LocalStorage persistence (reminders survive page refresh)
 - [ ] Recurring schedules (e.g. every 8 hours, daily)
 - [ ] Weekly adherence / dose history tracker
-- [ ] PWA manifest for mobile home screen install
 - [ ] Import / export reminders as JSON
-- [ ] Dark mode support
+- [ ] Dark mode toggle support
 
 ---
 
@@ -85,8 +94,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 👤 Author
 
-**Your Name**
+**Abhin**
 - GitHub: [abhinhere](https://github.com/abhinhere)
 - Email: [abhinchelakkal@gmail.com]
-
----
