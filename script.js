@@ -24,7 +24,7 @@
     if (!pushSubscription) return;
     const offsetMins = new Date().getTimezoneOffset();
     try {
-      await fetch('http://localhost:3000/sync', {
+      await fetch('https://med-reminder-joqh.onrender.com/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
