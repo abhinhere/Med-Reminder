@@ -162,11 +162,30 @@
 
     if(notifPermission && 'Notification' in window){
       try {
-        new Notification('💊 Medicine Reminder', {
-          body: `${msg}${med.notes ? '. '+med.notes : ''}`,
-          tag: `med-${med.id}`,
-          requireInteraction: true
-        });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification('💊 Medicine Reminder', {
+              body: `${msg}${med.notes ? '. '+med.notes : ''}`,
+              tag: `med-${med.id}`,
+              icon: 'icon-512.png',
+              requireInteraction: true
+            });
+          }).catch(() => {
+            new Notification('💊 Medicine Reminder', {
+              body: `${msg}${med.notes ? '. '+med.notes : ''}`,
+              tag: `med-${med.id}`,
+              icon: 'icon-512.png',
+              requireInteraction: true
+            });
+          });
+        } else {
+          new Notification('💊 Medicine Reminder', {
+            body: `${msg}${med.notes ? '. '+med.notes : ''}`,
+            tag: `med-${med.id}`,
+            icon: 'icon-512.png',
+            requireInteraction: true
+          });
+        }
       } catch(e){}
     }
   }
@@ -237,6 +256,14 @@
   });
 
   // ─── Init ────────────────────────────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('ServiceWorker registration failed: ', err);
+      });
+    });
+  }
+
   if('Notification' in window && Notification.permission === 'default'){
     document.getElementById('notifBanner').style.display = 'flex';
   } else if(Notification.permission === 'granted'){
