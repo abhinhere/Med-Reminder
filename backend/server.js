@@ -104,15 +104,17 @@ function getUserDateString(offsetMins) {
 app.get('/debug', (req, res) => {
   const debugInfo = [];
   users.forEach((user, endpoint) => {
-    const localHHMM = getUserHHMM(user.offsetMins);
-    const todayDate = getUserDateString(user.offsetMins);
+    const offset = user.offsetMins || 0;
+    const localHHMM = getUserHHMM(offset);
+    const todayDate = getUserDateString(offset);
+    const meds = user.medicines || [];
     debugInfo.push({
       endpoint: endpoint.slice(-20),
-      offsetMins: user.offsetMins,
+      offsetMins: offset,
       serverUTC: new Date().toISOString(),
       userLocalTime: localHHMM,
       userLocalDate: todayDate,
-      medicines: user.medicines.map(m => ({
+      medicines: meds.map(m => ({
         name: m.name,
         time: m.time,
         taken: m.taken,
@@ -130,11 +132,13 @@ setInterval(() => {
   let needsSave = false;
 
   users.forEach((user, endpoint) => {
-    const localHHMM = getUserHHMM(user.offsetMins);
-    const todayDate = getUserDateString(user.offsetMins);
+    const offset = user.offsetMins || 0;
+    const localHHMM = getUserHHMM(offset);
+    const todayDate = getUserDateString(offset);
     let userNeedsSave = false;
 
-    user.medicines.forEach(m => {
+    const meds = user.medicines || [];
+    meds.forEach(m => {
       // Reset lastPushedTime if it's a new day (so daily reminders fire again)
       if (m.lastPushedDate && m.lastPushedDate !== todayDate) {
         m.lastPushedTime = null;
